@@ -2,52 +2,68 @@
 // Purpose: To illustrate a simple Adapter class, using association between Adapter and Adaptee. 
 
 #include <iostream>
+#include <cstring>
 #include <list>
-
-using std::cout;    // preferable to: using namespace std;
-using std::endl;
-using std::string;
-using std::list;
+using namespace std;
 
 // Person is the Adaptee class (the class requiring an adaptation)
 class Person
 {
-private:
-   string firstName;
-   string lastName;
+private: 
+   char *firstName;
+   char *lastName;
    char middleInitial;
-   string title;  // Mr., Ms., Mrs., Miss, Dr., etc.
-   string greeting;
+   char *title;  // Mr., Ms., Mrs., Miss, Dr., etc.
+   char *greeting;
 protected:
 public:
    Person();   // default constructor
-   Person(const string &, const string &, char, const string &);  // alternate constructor
+   Person(const char *, const char *, char, const char *);  // alternate constructor
    Person(const Person &);  // copy constructor
-   Person &operator=(const Person &); // overloaded assignment operator
+   Person &operator=(const Person &); // assignment operator
    virtual ~Person();  // destructor
-   const string &GetFirstName() const { return firstName; }  // firstName returned as reference to const string
-   const string &GetLastName() const { return lastName; }    // so is lastName (via implicit cast)
-   const string &GetTitle() const { return title; }
+   const char *GetFirstName() const { return firstName; }  // firstName returned as const string  
+   const char *GetLastName() const { return lastName; }    // so is lastName (via implicit cast)
+   const char *GetTitle() const { return title; } 
    char GetMiddleInitial() const { return middleInitial; }
-   void ModifyTitle(const string &);  // Make this operation available to derived classes
-   void SetGreeting(const string &);
-   virtual const string &Speak() { return greeting; }  // note return type of const string & (we're no longer returning a literal)
-   virtual void Print() const;
+   void SetGreeting(const char *);
+   void ModifyTitle(const char *);     // Moved to public for association example (was protected)
+   virtual const char *Speak() { return greeting; } 
+   virtual void Print(); 
 };
 
-Person::Person() : firstName(""), lastName(""), middleInitial('\0'), title(""), greeting("")
+Person::Person()
 {
+   firstName = lastName = 0;  // NULL pointer
+   middleInitial = '\0';
+   title = 0;
+   greeting = 0;
 }
 
-Person::Person(const string &fn, const string &ln, char mi, const string &t) :
-               firstName(fn), lastName(ln), middleInitial(mi), title(t), greeting("Hello")
-
+Person::Person(const char *fn, const char *ln, char mi, const char *t)
 {
+   firstName = new char [strlen(fn) + 1];
+   strcpy(firstName, fn);
+   lastName = new char [strlen(ln) + 1];
+   strcpy(lastName, ln);
+   middleInitial = mi;
+   title = new char [strlen(t) + 1];
+   strcpy(title, t);
+   greeting = new char [strlen("Hello") + 1];
+   strcpy(greeting, "Hello");
 }
 
-Person::Person(const Person &p) : firstName(p.firstName), lastName(p.lastName),
-                                  middleInitial(p.middleInitial), title(p.title), greeting(p.greeting)
+Person::Person(const Person &pers)
 {
+   firstName = new char [strlen(pers.firstName) + 1];
+   strcpy(firstName, pers.firstName);
+   lastName = new char [strlen(pers.lastName) + 1];
+   strcpy(lastName, pers.lastName);
+   middleInitial = pers.middleInitial;
+   title = new char [strlen(pers.title) + 1];
+   strcpy(title, pers.title);
+   greeting = new char [strlen(pers.greeting) + 1];
+   strcpy(greeting, pers.greeting);
 }
 
 Person &Person::operator=(const Person &p)
@@ -55,35 +71,52 @@ Person &Person::operator=(const Person &p)
    // make sure we're not assigning an object to itself
    if (this != &p)
    {
-      // Note: there's no dynamically allocated data members, so implementing = is straightforward
-      firstName = p.firstName;
-      lastName = p.lastName;
+      delete firstName;  // or call ~Person();
+      delete lastName;
+      delete title;
+      delete greeting;
+
+      firstName = new char [strlen(p.firstName) + 1];
+      strcpy(firstName, p.firstName);
+      lastName = new char [strlen(p.lastName) + 1];
+      strcpy(lastName, p.lastName);
       middleInitial = p.middleInitial;
-      title = p.title;
-      greeting = p.greeting;
+      title = new char [strlen(p.title) + 1];
+      strcpy(title, p.title);
+      greeting = new char [strlen(p.greeting) + 1];
+      strcpy(greeting, p.greeting);
    }
    return *this;  // allow for cascaded assignments
 }
 
 Person::~Person()
 {
+   delete firstName;
+   delete lastName;
+   delete title;
+   delete greeting;
 }
 
-void Person::ModifyTitle(const string &newTitle)
+void Person::ModifyTitle(const char *newTitle)
 {
-   title = newTitle;
+   delete title;  // delete old title
+   title = new char [strlen(newTitle) + 1];
+   strcpy(title, newTitle);
 }
 
-void Person::SetGreeting(const string &newGreeting)
+void Person::SetGreeting(const char *newGreeting)
 {
-   greeting = newGreeting;
+   delete greeting;  // delete old title
+   greeting = new char [strlen(newGreeting) + 1];
+   strcpy(greeting, newGreeting);
 }
 
 
-void Person::Print() const
+void Person::Print()
 {
    cout << title << " " << firstName << " " << lastName << endl;
 }
+
 
 // Adapter Class -- an association to Adaptee.
 // Humanoid is primarily an Adapter class, however, is is secondarily a Target class, as derived class instances of this type 
@@ -93,22 +126,22 @@ class Humanoid
 private:
    Person *life;  // delegate all requests to the associated object
 protected:
-   void SetTitle(const string &t) { life->ModifyTitle(t); }
+   void SetTitle(const char *t) { life->ModifyTitle(t); }
 public:
-   Humanoid() { life = nullptr; }
-   Humanoid(const string &, const string &, const string &, const string &); 
+   Humanoid() { life = 0; }
+   Humanoid(const char *, const char *, const char *, const char *); 
    Humanoid(const Humanoid &h);  
    Humanoid &operator=(const Humanoid &h); 
-   virtual ~Humanoid() { delete life; life = nullptr; }  // destructor
-   const string &GetSecondaryName() const { return life->GetFirstName(); }  
-   const string &GetPrimaryName() const { return life->GetLastName(); }    // so is lastName (via implicit cast)
-   const string &GetTitle() const { return life->GetTitle(); } 
-   void SetSalutation(const string &m) { life->SetGreeting(m); }
+   virtual ~Humanoid() { delete life; }  // destructor
+   const char *GetSecondaryName() const { return life->GetFirstName(); }  
+   const char *GetPrimaryName() const { return life->GetLastName(); }    // so is lastName (via implicit cast)
+   const char *GetTitle() const { return life->GetTitle(); } 
+   void SetSalutation(const char *m) { life->SetGreeting(m); }
    virtual void GetInfo() { life->Print(); }
-   virtual const string &Converse() = 0;  // Pure virtual function prototype
+   virtual const char *Converse() = 0;  // Pure virtual function prototype
 };
 
-Humanoid::Humanoid(const string &n2, const string &n1, const string &planetNation, const string &greeting)
+Humanoid::Humanoid(const char *n2, const char *n1, const char *planetNation, const char *greeting)
 { 
    // instantiate the associated object (Adaptee)
    life = new Person(n2, n1, ' ', planetNation);
@@ -126,11 +159,11 @@ Humanoid::Humanoid(const Humanoid &h)
 Humanoid &Humanoid::operator=(const Humanoid &h)
 {  // there's only one data member, life, to worry about for a deep assignment
    if (this != &h)
-       life->Person::operator=(dynamic_cast<const Person &>(h));     
+       life->Person::operator=((Person &) h);     
    return *this; 
 }
 
-const string &Humanoid::Converse()   // Yes, there can be a default implementation for a pure virtual function
+const char *Humanoid::Converse()   // Yes, there can be a default implementation for a pure virtual function
 {                                  // but it can not be specified inline
    return life->Speak();
 }
@@ -141,14 +174,14 @@ class Orkan: public Humanoid
 {
 public:
    Orkan();   // default constructor
-   Orkan(const string &n2, const string &n1, const string &t) : Humanoid(n2, n1, t, "Nanu nanu") { } 
+   Orkan(const char *n2, const char *n1, const char *t) : Humanoid(n2, n1, t, "Nanu nanu") { } 
    Orkan(const Orkan &h) : Humanoid(h) { }  // copy constructor
    Orkan &operator=(const Orkan &h) { return (Orkan &) Humanoid::operator=(h); }
    virtual ~Orkan() { }  // destructor
-   virtual const string &Converse() override;  // We must override this method if we want Orkan to be a concrete class
+   virtual const char *Converse() override;  // We must override this method if we want Orkan to be a concrete class
 };
 
-const string &Orkan::Converse()    
+const char *Orkan::Converse()    
 {                                  
    return Humanoid::Converse();   // even if we just call the default implementation, we must provide a method here
 }
@@ -159,14 +192,14 @@ class Romulan: public Humanoid
 {
 public:
    Romulan();   // default constructor
-   Romulan(const string &n2, const string &n1, const string &t) : Humanoid(n2, n1, t, "jolan'tru") { } 
+   Romulan(const char *n2, const char *n1, const char *t) : Humanoid(n2, n1, t, "jolan'tru") { } 
    Romulan(const Romulan &h) : Humanoid(h) { }  // copy constructor
    Romulan &operator=(const Romulan &h) { return (Romulan &) Humanoid::operator=(h); }
    virtual ~Romulan() { }  // destructor
-   virtual const string &Converse() override;  // We must override this method if we want Romulan to be a concrete class
+   virtual const char *Converse() override;  // We must override this method if we want Romulan to be a concrete class
 };
 
-const string &Romulan::Converse()    
+const char *Romulan::Converse()    
 {                                  
    return Humanoid::Converse();   // even if we just call the default implementation, we must provide a method here
 }
@@ -177,14 +210,14 @@ class Earthling: public Humanoid
 {
 public:
    Earthling();   // default constructor
-   Earthling(const string &n2, const string &n1, const string &t) : Humanoid(n2, n1, t, "Hello") { } 
+   Earthling(const char *n2, const char *n1, const char *t) : Humanoid(n2, n1, t, "Hello") { } 
    Earthling(const Romulan &h) : Humanoid(h) { }  // copy constructor
    Earthling &operator=(const Earthling &h) { return (Earthling &) Humanoid::operator=(h); }
    virtual ~Earthling() { }  // destructor
-   virtual const string &Converse() override;  // We must override this method if we want Romulan to be a concrete class
+   virtual const char *Converse() override;  // We must override this method if we want Romulan to be a concrete class
 };
 
-const string &Earthling::Converse()    
+const char *Earthling::Converse()    
 {                                  
    return Humanoid::Converse();   // even if we just call the default implementation, we must provide a method here
 }

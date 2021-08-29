@@ -9,8 +9,7 @@
 #include <iostream>
 #include "Person.h"
 
-using std::cout;    // preferred to: using namespace std;
-using std::endl;
+using namespace std;
 
 template <class Type>
 class SmartPointer
@@ -18,7 +17,7 @@ class SmartPointer
 private:
     Type *pointer;
 public:
-    SmartPointer(Type *ptr = nullptr) { pointer = ptr; }
+    SmartPointer(Type *ptr = NULL) { pointer = ptr; }
     virtual ~SmartPointer() { cout << "SmartPtr Destructor" << endl; delete pointer; }
     Type *operator->() { return pointer; }
     Type &operator*() { return *pointer; }

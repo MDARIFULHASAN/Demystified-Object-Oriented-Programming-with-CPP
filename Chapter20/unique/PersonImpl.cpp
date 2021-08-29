@@ -4,81 +4,63 @@
 
 #include <iostream>
 #include <iomanip>
-#include <cstring>
 #include "Person.h"
 
-using namespace std;
+using std::cout;   // preferred to: using namespace std;
+using std::endl;
+using std::string;
+// using std::unique_ptr;
 
 // Nested class definition supports implementation
 class Person::PersonImpl
 {
 private: 
-    char *firstName;
-    char *lastName;
+    string firstName;
+    string lastName;
     char middleInitial;
-    char *title;  // Mr., Ms., Mrs., Miss, Dr., etc.
+    string title;  // Mr., Ms., Mrs., Miss, Dr., etc.
 public:
     PersonImpl();   // default constructor
-    PersonImpl(const char *, const char *, char, const char *);  
+    PersonImpl(const string &, const string &, char, const string &);  
     PersonImpl(const PersonImpl &);  // copy constructor
     virtual ~PersonImpl();  // virtual destructor
 
-    const char *GetFirstName() const { return firstName; }  
-    const char *GetLastName() const { return lastName; }    
-    const char *GetTitle() const { return title; } 
+    const string &GetFirstName() const { return firstName; }  
+    const string &GetLastName() const { return lastName; }    
+    const string &GetTitle() const { return title; } 
     char GetMiddleInitial() const { return middleInitial; }
-    void ModifyTitle(const char *); 
+    void ModifyTitle(const string &); 
 
     virtual void Print() const;
-    virtual void IsA();  
-    virtual void Greeting(const char *);
+    virtual void IsA() const;  
+    virtual void Greeting(const string &);
 
     PersonImpl &operator=(const PersonImpl &);  // overloaded assignment operator prototype
 };
 
 // Nested class member functions
 
-Person::PersonImpl::PersonImpl()
+Person::PersonImpl::PersonImpl() : firstName(""), lastName(""), middleInitial('\0'), title("")
 {
-    firstName = lastName = 0;  // NULL pointer
-    middleInitial = '\0';
-    title = 0;
 }
 
-Person::PersonImpl::PersonImpl(const char *fn, const char *ln, char mi, const char *t)
+Person::PersonImpl::PersonImpl(const string &fn, const string &ln, char mi, const string &t) :
+                               firstName(fn), lastName(ln), middleInitial(mi), title(t)
 {
-    firstName = new char [strlen(fn) + 1];
-    strcpy(firstName, fn);
-    lastName = new char [strlen(ln) + 1];
-    strcpy(lastName, ln);
-    middleInitial = mi;
-    title = new char [strlen(t) + 1];
-    strcpy(title, t);
 }
 
-Person::PersonImpl::PersonImpl(const Person::PersonImpl &pers) 
+Person::PersonImpl::PersonImpl(const Person::PersonImpl &p) : firstName(p.firstName), lastName(p.lastName),
+                                                              middleInitial(p.middleInitial), title(p.title)
 {
-    firstName = new char [strlen(pers.firstName) + 1];
-    strcpy(firstName, pers.firstName);
-    lastName = new char [strlen(pers.lastName) + 1];
-    strcpy(lastName, pers.lastName);
-    middleInitial = pers.middleInitial;
-    title = new char [strlen(pers.title) + 1];
-    strcpy(title, pers.title);
 }
 
 Person::PersonImpl::~PersonImpl()
 {
-    delete firstName;
-    delete lastName;
-    delete title;
 }
 
-void Person::PersonImpl::ModifyTitle(const char *newTitle)
+void Person::PersonImpl::ModifyTitle(const string &newTitle)
 {
-    delete title;  // delete old title
-    title = new char [strlen(newTitle) + 1];
-    strcpy(title, newTitle);
+    title = newTitle;
 }
 
 void Person::PersonImpl::Print() const
@@ -88,12 +70,12 @@ void Person::PersonImpl::Print() const
     cout << lastName << endl;
 }
 
-void Person::PersonImpl::IsA()
+void Person::PersonImpl::IsA() const
 {
     cout << "Person" << endl;
 }
 
-void Person::PersonImpl::Greeting(const char *msg)
+void Person::PersonImpl::Greeting(const string &msg)
 {
     cout << msg << endl;
 }
@@ -103,17 +85,10 @@ Person::PersonImpl &Person::PersonImpl::operator=(const PersonImpl &p)
    // make sure we're not assigning an object to itself
    if (this != &p)
    {
-      delete firstName;  // or call ~Person();
-      delete lastName;
-      delete title;
-
-      firstName = new char [strlen(p.firstName) + 1];
-      strcpy(firstName, p.firstName);
-      lastName = new char [strlen(p.lastName) + 1];
-      strcpy(lastName, p.lastName);
+      firstName = p.firstName;
+      lastName = p.lastName;
       middleInitial = p.middleInitial;
-      title = new char [strlen(p.title) + 1];
-      strcpy(title, p.title);
+      title = p.title;
    }
    return *this;  // allow for cascaded assignments
 }
@@ -125,17 +100,16 @@ Person::Person() : pImpl(new PersonImpl())
 {
 }
 
-Person::Person(const char *fn, const char *ln, char mi, 
-               const char *t) : pImpl(new PersonImpl(fn, ln, mi, t))
+Person::Person(const string &fn, const string &ln, char mi, const string &t) : pImpl(new PersonImpl(fn, ln, mi, t))
 {
 }
 
 // copy constructor -- in member init list, call PersonImpl copy constructor with new nested object creation
-Person::Person(const Person &pers): pImpl(new PersonImpl(*(pers.pImpl)))
+Person::Person(const Person &p): pImpl(new PersonImpl(*(p.pImpl)))
 {
-    // No Person data members to copy from pers except deep copy in *(pers.pImpl)
+    // No Person data members to copy from pers except deep copy in *(p.pImpl)
     // line below is an alternative to initialization in member initialization list
-    // pImpl = new PersonImpl(*(pers.pImpl));  // call PersonImpl copy constructor with new nested object creation
+    // pImpl = new PersonImpl(*(p.pImpl));  // call PersonImpl copy constructor with new nested object creation
 }
 
 Person::~Person()
@@ -143,17 +117,17 @@ Person::~Person()
     // delete on pImpl no longer required
 }
 
-const char *Person::GetFirstName() const
+const string &Person::GetFirstName() const
 {
     return pImpl->GetFirstName();
 }
 
-const char *Person::GetLastName() const
+const string &Person::GetLastName() const
 {
     return pImpl->GetLastName();
 }
 
-const char *Person::GetTitle() const
+const string &Person::GetTitle() const
 {
     return pImpl->GetTitle();
 }
@@ -163,7 +137,7 @@ char Person::GetMiddleInitial() const
     return pImpl->GetMiddleInitial();
 }
 
-void Person::ModifyTitle(const char *newTitle)
+void Person::ModifyTitle(const string &newTitle)
 {
     pImpl->ModifyTitle(newTitle);  // delegate to implementation
 }
@@ -173,12 +147,12 @@ void Person::Print() const
     pImpl->Print();   // delegate to implementation
 }
 
-void Person::IsA()
+void Person::IsA() const
 {
     pImpl->IsA();   // delegate to implementation
 }
 
-void Person::Greeting(const char *msg)
+void Person::Greeting(const string &msg) const
 {
     pImpl->Greeting(msg);    // delegate to implementation
 }

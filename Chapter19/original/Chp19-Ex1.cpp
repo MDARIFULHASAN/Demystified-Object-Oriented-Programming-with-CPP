@@ -3,8 +3,7 @@
 // is not guaranteed. In fact, it won't happen unless the rare (unadvised) case of explicit deletion of the Singleton occurs. 
 
 #include <iostream>
-using std::cout;   // preferred to: using namespace std;
-using std::endl;
+using namespace std;
 
 class Singleton
 {
@@ -18,22 +17,22 @@ public:
 };
 
 // get the memory for the static data member
-Singleton *Singleton::theInstance = nullptr;
+Singleton *Singleton::theInstance = NULL;
 
 Singleton::Singleton() 
 { 
     cout << "Constructor" << endl; 
-    theInstance = nullptr;
+    theInstance = NULL;
 }  
 
 Singleton::~Singleton()
 { 
     cout << "Destructor" << endl; // note: this message will appear twice if you delete the Singleton. 
-    if (theInstance != nullptr)      // Second call (print) is on delete temp; before this check of theInstance != NULL to stop the recursion
+    if (theInstance != NULL)      // Second call (print) is on delete temp; before this check of theInstance != NULL to stop the recursion
     {
        Singleton *temp = theInstance;
-       theInstance = nullptr;   // removes pointer to actual Singleton 
-       temp->theInstance = nullptr;  // prevents recursion
+       theInstance = NULL;   // removes pointer to actual Singleton 
+       temp->theInstance = NULL;  // prevents recursion
        delete temp;   // makes for a recursive destructor call if you'd just call 'delete theInstance;'
     }                 // which is why we need to use a temp pointer and first null out 'theInstance' to stop the recursion 
 }
@@ -42,7 +41,7 @@ Singleton::~Singleton()
 // The Target class will change the signature to match the signature in its private constructors (to pass the arguments along)
 Singleton *Singleton::instance()
 {
-    if (theInstance == nullptr)
+    if (theInstance == NULL)
         theInstance = new Singleton();  // allocate Singleton -- will be constructed (once)
     return theInstance;
 }

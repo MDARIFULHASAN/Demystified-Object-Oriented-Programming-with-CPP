@@ -9,10 +9,9 @@
 // Nonetheless, we will add checks for single destruction in the rare case a Client deletes our Singleton directly.
 
 #include <iostream>
+#include <cstring>
 #include <list>
-using std::cout;   // preferred to: using namespace std;
-using std::endl;
-using std::string;
+using namespace std;
 
 class Singleton;
 class SingletonDestroyer;
@@ -24,7 +23,7 @@ class SingletonDestroyer
 private:
     Singleton *theSingleton;
 public:
-    SingletonDestroyer(Singleton *s = nullptr) { theSingleton = s; }
+    SingletonDestroyer(Singleton *s = 0) { theSingleton = s; }
     SingletonDestroyer(const SingletonDestroyer &) = delete; // disallow copies
     SingletonDestroyer &operator=(const SingletonDestroyer &) = delete; // disallow assignment
     ~SingletonDestroyer();  // class is not meant to be customized, so destructor is not virtual
@@ -49,13 +48,13 @@ protected:
 };
 
 // External (name mangled) variables to hold static data members
-Singleton *Singleton::theInstance = nullptr;
+Singleton *Singleton::theInstance = NULL;
 SingletonDestroyer Singleton::destroyer;
 
 
 SingletonDestroyer::~SingletonDestroyer()
 {   // If Singleton has been directly deleted (rare), its destructor will have Nulled out SingletonDestructor's theSingleton member
-    if (theSingleton == nullptr)  
+    if (theSingleton == NULL)  
         cout << "SingletonDestroyer destructor: Singleton has already been destructed" << endl;
     else
     {
@@ -70,7 +69,7 @@ SingletonDestroyer::~SingletonDestroyer()
 /* 
 Singleton *Singleton::instance()
 {
-    if (theInstance == nullptr)
+    if (theInstance == NULL)
     {
         theInstance = new Singleton();
         destroyer.setSingleton(theInstance);
@@ -85,41 +84,60 @@ Singleton *Singleton::instance()
 class Person
 {
 private:
-   string firstName;
-   string lastName;
+   char *firstName;
+   char *lastName;
    char middleInitial;
-   string title;  // Mr., Ms., Mrs., Miss, Dr., etc.
-   string greeting;
+   char *title;  // Mr., Ms., Mrs., Miss, Dr., etc.
+   char *greeting;
 protected:
-   void ModifyTitle(const string &);  // Make this operation available to derived classes
+   void ModifyTitle(const char *);  // Make this operation available to derived classes
 public:
    Person();   // default constructor
-   Person(const string &, const string &, char, const string &);  // alternate constructor
+   Person(const char *, const char *, char, const char *);  // alternate constructor
    Person(const Person &);  // copy constructor
    Person &operator=(const Person &); // overloaded assignment operator
    virtual ~Person();  // destructor
-   const string &GetFirstName() const { return firstName; }  // firstName returned as reference to const string
-   const string &GetLastName() const { return lastName; }    // so is lastName (via implicit cast)
-   const string &GetTitle() const { return title; }
+   const char *GetFirstName() const { return firstName; }  // firstName returned as const string
+   const char *GetLastName() const { return lastName; }    // so is lastName (via implicit cast)
+   const char *GetTitle() const { return title; }
    char GetMiddleInitial() const { return middleInitial; }
-   void SetGreeting(const string &);
-   virtual const string &Speak() { return greeting; }  // note return type of const string & (we're no longer returning a literal)
-   virtual void Print() const;
+   void SetGreeting(const char *);
+   virtual const char *Speak() { return greeting; }
+   virtual void Print();
 };
 
-Person::Person() : firstName(""), lastName(""), middleInitial('\0'), title(""), greeting("")
+Person::Person()
 {
+   firstName = lastName = 0;  // NULL pointer
+   middleInitial = '\0';
+   title = 0;
+   greeting = 0;
 }
 
-Person::Person(const string &fn, const string &ln, char mi, const string &t) :
-               firstName(fn), lastName(ln), middleInitial(mi), title(t), greeting("Hello")
-
+Person::Person(const char *fn, const char *ln, char mi, const char *t)
 {
+   firstName = new char [strlen(fn) + 1];
+   strcpy(firstName, fn);
+   lastName = new char [strlen(ln) + 1];
+   strcpy(lastName, ln);
+   middleInitial = mi;
+   title = new char [strlen(t) + 1];
+   strcpy(title, t);
+   greeting = new char [strlen("Hello") + 1];
+   strcpy(greeting, "Hello");
 }
 
-Person::Person(const Person &p) : firstName(p.firstName), lastName(p.lastName),
-                                  middleInitial(p.middleInitial), title(p.title), greeting(p.greeting)
+Person::Person(const Person &pers)
 {
+   firstName = new char [strlen(pers.firstName) + 1];
+   strcpy(firstName, pers.firstName);
+   lastName = new char [strlen(pers.lastName) + 1];
+   strcpy(lastName, pers.lastName);
+   middleInitial = pers.middleInitial;
+   title = new char [strlen(pers.title) + 1];
+   strcpy(title, pers.title);
+   greeting = new char [strlen(pers.greeting) + 1];
+   strcpy(greeting, pers.greeting);
 }
 
 Person &Person::operator=(const Person &p)
@@ -127,12 +145,20 @@ Person &Person::operator=(const Person &p)
    // make sure we're not assigning an object to itself
    if (this != &p)
    {
-      // Note: there's no dynamically allocated data members, so implementing = is straightforward
-      firstName = p.firstName;
-      lastName = p.lastName;
+      delete firstName;  // or call ~Person();
+      delete lastName;
+      delete title;
+      delete greeting;
+
+      firstName = new char [strlen(p.firstName) + 1];
+      strcpy(firstName, p.firstName);
+      lastName = new char [strlen(p.lastName) + 1];
+      strcpy(lastName, p.lastName);
       middleInitial = p.middleInitial;
-      title = p.title;
-      greeting = p.greeting;
+      title = new char [strlen(p.title) + 1];
+      strcpy(title, p.title);
+      greeting = new char [strlen(p.greeting) + 1];
+      strcpy(greeting, p.greeting);
    }
    return *this;  // allow for cascaded assignments
 }
@@ -140,50 +166,57 @@ Person &Person::operator=(const Person &p)
 Person::~Person()
 {
    cout << "Person destructor" << endl;
+   delete firstName;
+   delete lastName;
+   delete title;
 }
 
-void Person::ModifyTitle(const string &newTitle)
+void Person::ModifyTitle(const char *newTitle)
 {
-   title = newTitle;
+   delete title;  // delete old title
+   title = new char [strlen(newTitle) + 1];
+   strcpy(title, newTitle);
 }
 
-void Person::SetGreeting(const string &newGreeting)
+void Person::SetGreeting(const char *newGreeting)
 {
-   greeting = newGreeting;
+   delete greeting;  // delete old title
+   greeting = new char [strlen(newGreeting) + 1];
+   strcpy(greeting, newGreeting);
 }
 
-
-void Person::Print() const
+void Person::Print()
 {
-   cout << title << " " << firstName << " " << lastName << endl;
+   cout << title << " " << firstName << " " << middleInitial << " " << lastName << endl;
 }
+
 
 // A President Is-A Person yet mixes-in a Singleton (definitely!)
 class President: public Person, public Singleton
 {
 private:
-    President(const string &, const string &, char, const string &);
+    President(const char *, const char *, char, const char *);
     // No default constructor - rare
 public:
     virtual ~President(); // { destroyer.setSingleton(NULL); cout << "President destructor" << endl; }
     President(const President &) = delete;  // disallow copies
     President &operator=(const President &) = delete;
-    static President *instance(const string &, const string &, char, const string &);
+    static President *instance(const char *, const char *, char, const char *);
 };
 
-President::President(const string &fn, const string &ln, char mi, const string &t) : Person(fn, ln, mi, t), Singleton()
+President::President(const char *fn, const char *ln, char mi, const char *t) : Person(fn, ln, mi, t), Singleton()
 {
 }
 
 President::~President()
 {
-    destroyer.setSingleton(nullptr);  // Necessary for the rare case that a Singleton is explicitly deleted. The SingletonDestructor
+    destroyer.setSingleton(NULL);  // Necessary for the rare case that a Singleton is explicitly deleted. The SingletonDestructor
     cout << "President destructor" << endl;   // destructor will check this member to see if it's NULL before deallocating Singleton
 }
 
-President *President::instance(const string &fn, const string &ln, char mi, const string &t) 
+President *President::instance(const char *fn, const char *ln, char mi, const char *t) 
 {
-    if (theInstance == nullptr)    // If we have not yet allocated the Singleton
+    if (theInstance == NULL)    // If we have not yet allocated the Singleton
     {
         theInstance = new President(fn, ln, mi, t);    // Create one using private constructor
         destroyer.setSingleton(theInstance);           // Set our SingletonDestroyer to point to the Singleton
@@ -191,7 +224,7 @@ President *President::instance(const string &fn, const string &ln, char mi, cons
     }
     else                                               // If an instance exists, return existing instance
         cout << "Singleton previously created. Returning existing singleton" << endl;
-    return dynamic_cast<President *>(theInstance);   // cast necessary because President has been stored as a Singleton in theInstance
+    return (President *) theInstance;   // cast necessary because President has been stored as a Singleton in theInstance
 }
 
 

@@ -3,16 +3,13 @@
 
 #include <iostream>
 #include <iomanip>
+#include <cstring>
 #include <list>
 #include <iterator>
 
-using std::cout;   // prefered to: using namespace std;
-using std::endl;
-using std::setprecision;
-using std::string;
-using std::list;
+using namespace std;
 
-constexpr int MAXCOURSES = 5, MAXSTUDENTS = 5;
+const int MAXCOURSES = 5, MAXSTUDENTS = 5;
 
 class Subject;  // forward declarations
 class Student;
@@ -95,23 +92,25 @@ void Subject::Notify()
 class Course: public Subject   // over-simplified Course class
 {                              // inherits observer list (from Subject) which will represent Students on wait-list
 private:
-    string title;
+    char *title;
     int number;
     Student *students[MAXSTUDENTS];  // List of Students enrolled in Course
     int totalStudents;
 public:
-    Course(const string &title, int num): number(num), totalStudents(0)
+    Course(const char *title, int num): number(num)
     {
-        this->title = title;   // or use different parameter name and set in member init list
+        this->title = new char[strlen(title) + 1];
+        strcpy(this->title, title);
+        totalStudents = 0;
         for (int i = 0; i < MAXSTUDENTS; i++)
-            students[i] = nullptr;
+            students[i] = 0;
     }
-    virtual ~Course() { }  // More work needed - don't forget to remove Students from Course!
+    virtual ~Course() { delete title; }  // Don't forget to remove Students from Course!
     int GetCourseNum() const { return number; }
-    const string &GetTitle() const { return title; }
+    const char *GetTitle() const { return title; }
     bool AddStudent(Student *);
     void Open() { SetState(1); Notify(); } // Once a course is Open for enrollment, we Notify() the Observers (Students) 
-    void PrintStudents() const;
+    void PrintStudents();
 }; 
 
 bool Course::AddStudent(Student *s) 
@@ -129,49 +128,70 @@ bool Course::AddStudent(Student *s)
 class Person
 {
 private: 
-    string firstName;
-    string lastName;
+    char *firstName;
+    char *lastName;
     char middleInitial;
-    string title;  // Mr., Ms., Mrs., Miss, Dr., etc.
+    char *title;  // Mr., Ms., Mrs., Miss, Dr., etc.
 protected:
-    void ModifyTitle(const string &); 
+    void ModifyTitle(const char *); 
 public:
     Person();   // default constructor
-    Person(const string &, const string &, char, const string &);  
+    Person(const char *, const char *, char, const char *);  
     Person(const Person &);  // copy constructor
     virtual ~Person();  // virtual destructor
 
-    const string &GetFirstName() const { return firstName; }  
-    const string &GetLastName() const { return lastName; }    
-    const string &GetTitle() const { return title; } 
+    const char *GetFirstName() const { return firstName; }  
+    const char *GetLastName() const { return lastName; }    
+    const char *GetTitle() const { return title; } 
     char GetMiddleInitial() const { return middleInitial; }
 
     virtual void Print() const;
-    virtual void IsA() const;  
-    virtual void Greeting(const string &) const;
+    virtual void IsA();  
+    virtual void Greeting(const char *);
 };
 
-Person::Person() : firstName(""), lastName(""), middleInitial('\0'), title("")
+Person::Person()
 {
+    firstName = lastName = 0;  // NULL pointer
+    middleInitial = '\0';
+    title = 0;
 }
 
-Person::Person(const string &fn, const string &ln, char mi, const string &t) :
-               firstName(fn), lastName(ln), middleInitial(mi), title(t)
+Person::Person(const char *fn, const char *ln, char mi, 
+               const char *t)
 {
+    firstName = new char [strlen(fn) + 1];
+    strcpy(firstName, fn);
+    lastName = new char [strlen(ln) + 1];
+    strcpy(lastName, ln);
+    middleInitial = mi;
+    title = new char [strlen(t) + 1];
+    strcpy(title, t);
 }
 
-Person::Person(const Person &p) : firstName(p.firstName), lastName(p.lastName),
-                                  middleInitial(p.middleInitial), title(p.title)
+Person::Person(const Person &pers)
 {
+    firstName = new char [strlen(pers.firstName) + 1];
+    strcpy(firstName, pers.firstName);
+    lastName = new char [strlen(pers.lastName) + 1];
+    strcpy(lastName, pers.lastName);
+    middleInitial = pers.middleInitial;
+    title = new char [strlen(pers.title) + 1];
+    strcpy(title, pers.title);
 }
 
 Person::~Person()
 {
+    delete firstName;
+    delete lastName;
+    delete title;
 }
 
-void Person::ModifyTitle(const string &newTitle)
+void Person::ModifyTitle(const char *newTitle)
 {
-    title = newTitle;
+    delete title;  // delete old title
+    title = new char [strlen(newTitle) + 1];
+    strcpy(title, newTitle);
 }
 
 void Person::Print() const
@@ -180,12 +200,12 @@ void Person::Print() const
     cout << middleInitial << ". " << lastName << endl;
 }
 
-void Person::IsA() const
+void Person::IsA()
 {
     cout << "Person" << endl;
 }
 
-void Person::Greeting(const string &msg) const
+void Person::Greeting(const char *msg)
 {
     cout << msg << endl;
 }
@@ -194,61 +214,71 @@ class Student : public Person, public Observer
 {
 private: 
     float gpa;
-    const string studentId;  
+    const char *studentId;  
     int currentNumCourses;
     Course *courses[MAXCOURSES];
     Course *waitList;  // Course we'd like to take - we're on the waitlist -- this is our Subject in specialized form
 public:
     Student();  // default constructor
-    Student(const string &, const string &, char, const string &, float, const string &, Course *); 
-    Student(const string &, const string &, char, const string &, float, const string &); 
+    Student(const char *, const char *, char, const char *, float, const char *, Course *); 
+    Student(const char *, const char *, char, const char *, float, const char *); 
     Student(const Student &) = delete;  // copy constructor is now Disallowed 
     virtual ~Student();  // destructor
     void EarnPhD();  
 
     float GetGpa() const { return gpa; }
-    const string &GetStudentId() const { return studentId; }
+    const char *GetStudentId() const { return studentId; }
   
     virtual void Print() const override;
-    virtual void IsA() const override;
+    virtual void IsA() override;
     virtual void Update() override;
-    // note: we choose not to redefine Person::Greeting(const string &)
+    // note: we choose not to redefine Person::Greeting(const char *)
     virtual void Graduate();   // newly introduced virtual fn.
     bool AddCourse(Course *);
-    void PrintCourses() const;
+    void PrintCourses();
 };
 
 
-Student::Student() : gpa(0.0), studentId (""), currentNumCourses(0) 
+Student::Student() : studentId (0) 
 {
-    for (int i = 0; i < MAXCOURSES; i++)
-        courses[i] = nullptr;
-    waitList = nullptr;
+    gpa = 0.0;
+    currentNumCourses = 0;
 }
 
 // Alternate constructor member function definition
-Student::Student(const string &fn, const string &ln, char mi, const string &t, float avg, const string &id, Course *c) : 
-                 Person(fn, ln, mi, t), Observer(), gpa(avg), studentId(id), currentNumCourses(0)
+Student::Student(const char *fn, const char *ln, char mi, 
+                 const char *t, float avg, const char *id, Course *c) : Person(fn, ln, mi, t), Observer()
 {
-    for (int i = 0; i < MAXCOURSES; i++)
-        courses[i] = nullptr;
-    waitList = c;      // Set waitlist to Course (Subject) 
+    gpa = avg;
+    char *temp = new char [strlen(id) + 1];
+    strcpy (temp, id); 
+    studentId = temp;
+    currentNumCourses = 0;
+    waitList = c;   // Set waitlist to Course (Subject) 
     c->Register(this); // Add the Student (Observer) to the Subject's list
+    for (int i = 0; i < MAXCOURSES; i++)
+        courses[i] = 0;
 }
 
 // Another alternate constructor member function definition
-Student::Student(const string &fn, const string &ln, char mi, const string &t, float avg, const string &id) : 
-                 Person(fn, ln, mi, t), Observer(), gpa(avg), studentId(id), currentNumCourses(0)
+Student::Student(const char *fn, const char *ln, char mi, 
+                 const char *t, float avg, const char *id) : Person(fn, ln, mi, t), Observer()
 {
-    waitList = nullptr;   // no Course on waitlist 
+    gpa = avg;
+    char *temp = new char [strlen(id) + 1];
+    strcpy (temp, id); 
+    studentId = temp;
+    currentNumCourses = 0;
+    waitList = 0;   // no Course on waitlist 
     for (int i = 0; i < MAXCOURSES; i++)
-        courses[i] = nullptr;
+        courses[i] = 0;
 }
 
    
 // destructor definition
 Student::~Student()
 {
+    delete (char *) studentId;
     // Add code to remove this Student from the respective course lists
 }
 
@@ -266,7 +296,7 @@ void Student::Print() const
     cout << setprecision(3) <<  " " << gpa;
 }
 
-void Student::IsA() const
+void Student::IsA()
 {
     cout << "Student" << endl;
 }
@@ -313,7 +343,7 @@ void Student::Update()
 }
 
 
-void Student::PrintCourses() const
+void Student::PrintCourses()
 {
     cout << "Student: (" << GetFirstName() << " " << GetLastName() << ") enrolled in: " << endl;
     for (int i = 0; i < MAXCOURSES && courses[i] != 0; i++)
@@ -321,7 +351,7 @@ void Student::PrintCourses() const
 }
 
 
-void Course::PrintStudents() const
+void Course::PrintStudents()
 {
     cout << "Course: (" << GetTitle() << ") has the following students: " << endl;
     for (int i = 0; i < MAXSTUDENTS && students[i] != 0; i++)

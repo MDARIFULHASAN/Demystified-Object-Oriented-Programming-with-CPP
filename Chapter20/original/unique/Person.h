@@ -5,27 +5,25 @@
 #define _PERSON_H
 #include <memory>
 
-using std::string;
-
 class Person
 {
 private: 
     class PersonImpl;  // forward declaration to nested class
     std::unique_ptr<PersonImpl> pImpl; // pointer to implementation of class
 protected:
-    void ModifyTitle(const string &); 
+    void ModifyTitle(const char *); 
 public:
     Person();   // default constructor
-    Person(const string &, const string &, char, const string &);  
+    Person(const char *, const char *, char, const char *);  
     Person(const Person &);  // copy constructor
     virtual ~Person();  // virtual destructor
-    const string &GetFirstName() const; // { return firstName; }  
-    const string &GetLastName() const; // { return lastName; }    
-    const string &GetTitle() const; // { return title; } 
+    const char *GetFirstName() const; // { return firstName; }  
+    const char *GetLastName() const; // { return lastName; }    
+    const char *GetTitle() const; // { return title; } 
     char GetMiddleInitial() const; // { return middleInitial; }
     virtual void Print() const;
-    virtual void IsA() const;  
-    virtual void Greeting(const string &) const;
+    virtual void IsA();  
+    virtual void Greeting(const char *);
     Person &operator=(const Person &);  // overloaded assignment operator prototype
 };
 

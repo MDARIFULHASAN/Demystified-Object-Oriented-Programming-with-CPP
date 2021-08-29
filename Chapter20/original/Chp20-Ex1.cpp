@@ -8,14 +8,13 @@
 #include <iostream>
 #include "Person.h"
 
-using std::cout;   // preferred to: using namespace std;
-using std::endl;
+using namespace std;
 
-constexpr int MAX = 3;
+const int MAX = 3;
 
 int main()
 {
-    Person *people[MAX] = { nullptr, nullptr, nullptr };
+    Person *people[MAX];
     people[0] = new Person("Giselle", "LeBrun", 'R', "Ms.");   
     people[1] = new Person("Zack", "Moon", 'R', "Dr."); 
     people[2] = new Person("Gabby", "Doone", 'A', "Dr.");
